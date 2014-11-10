@@ -52,10 +52,17 @@ class Crawler
   end
 end
 
-# main
-DIR_NAME = "./img"
-URL = "http://matome.naver.jp/odai/2140544391008706001"
-SELECTOR = '.mdMTMWidget01Content01 img'
+class NaverCrawler < Crawler
+  def initialize(dir)
+    super(".mdMTMWidget01Content01 img", dir)
+  end
 
-crawler = Crawler.new(SELECTOR, DIR_NAME)
-crawler.get_images(URL)
+  # 取得したURLから、オリジナルサイズの画像へのURLを取得する。オーバーライドすることを想定。
+  def get_original_image_url(url)
+    url
+  end
+end
+
+# main
+crawler = NaverCrawler.new("./img")
+crawler.get_images("http://matome.naver.jp/odai/2140544391008706001")
