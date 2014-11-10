@@ -37,6 +37,11 @@ class Crawler
     end
   end
 
+  # 取得したURLから、オリジナルサイズの画像へのURLを取得する。オーバーライドすることを想定。
+  def get_original_image_url(url)
+    url
+  end
+
   # 指定したURLから画像を取得して保存する
   def get_images(url)
     html = open(url, "r:binary").read
