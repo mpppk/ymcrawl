@@ -7,6 +7,12 @@ class Crawler
     @selector = selector
     @dir = dir
   end
+
+  def get_doc(url)
+    html = open(url, "r:binary").read
+    Nokogiri::HTML(html.toutf8, nil, 'utf-8')
+  end
+
   # ファイル名が既にimgディレクトリに存在していた場合はインデックスを付与する
   def get_unique_name(filename)
     index = 0
@@ -44,9 +50,7 @@ class Crawler
 
   # 指定したURLから画像を取得して保存する
   def get_images(url)
-    html = open(url, "r:binary").read
-    doc = Nokogiri::HTML(html.toutf8, nil, 'utf-8')
-    doc.css(@selector).each do |node|
+    get_doc(url).css(@selector).each do |node|
       save_image(node["src"], node["title"])
     end
   end
@@ -57,9 +61,11 @@ class NaverCrawler < Crawler
     super(".mdMTMWidget01Content01 img", dir)
   end
 
-  # 取得したURLから、オリジナルサイズの画像へのURLを取得する。オーバーライドすることを想定。
-  def get_original_image_url(url)
-    url
+  # 指定したURLから画像を取得して保存する
+  def get_images(url)
+    get_doc(url).css(@selector).each do |node|
+      save_image(node["src"], node["title"])
+    end
   end
 end
 
