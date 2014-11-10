@@ -46,7 +46,7 @@ class Crawler
   def get_images(url)
     html = open(url, "r:binary").read
     doc = Nokogiri::HTML(html.toutf8, nil, 'utf-8')
-    doc.css(SELECTOR).each do |node|
+    doc.css(@selector).each do |node|
       save_image(node["src"], node["title"])
     end
   end
