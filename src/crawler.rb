@@ -42,11 +42,16 @@ class Crawler
     FileUtils.mkdir_p(@dir) unless FileTest.exist?(@dir)
 
     # write image adata
-    open(filePath, 'wb') do |output|
-      open(normalize_url(url)) do |data|
+    begin
+      open(filePath, 'wb') do |output|
         puts filePath
-        output.write(data.read)
+        open(normalize_url(url)) do |data|
+          output.write(data.read)
+        end
       end
+    rescue # ファイルが存在しないなどの理由で例外が発生した場合は、生成した画像を削除
+      puts "image not exist."
+      File.delete filePath
     end
   end
 end
