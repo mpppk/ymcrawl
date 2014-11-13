@@ -4,11 +4,17 @@ require 'kconv'
 require 'addressable/uri'
 
 class Crawler
-  def initialize(selector, dir)
-    @selector = selector
+  def initialize(dir, site_data)
+    @image_selector = site_data["css"]["image"]
     @dir = dir
   end
-
+  
+  # 与えられたcssセレクタから画像を抽出する
+  def get_images(url)
+    get_image_urls(url).each{|url| save_image(url, "test")}
+  end
+  
+  private
   # 日本語のURLを読み込める形に変換する
   def normalize_url(url) Addressable::URI.parse(url).normalize.to_s end
 
@@ -34,6 +40,7 @@ class Crawler
 
   # 指定されたリンク先の画像を保存する
   def save_image(url, title)
+    puts "src: #{url}"
     # ready filepath
     filename = "#{title}#{File.extname(url)}"
     cnt = 0
@@ -44,7 +51,7 @@ class Crawler
     # write image adata
     begin
       open(filePath, 'wb') do |output|
-        puts filePath
+        puts "dst: #{filePath}"
         open(normalize_url(url)) do |data|
           output.write(data.read)
         end
@@ -53,5 +60,31 @@ class Crawler
       puts "image not exist."
       File.delete filePath
     end
+  end
+
+  # セレクタの一番最後のタグが何かを返す。擬似クラスなどは取り除く
+  def get_last_tag(selector)
+    # 一番最後の要素だけを返す。(擬似クラスなどは省く)
+    selector.split(/\s|\+|>/).last.split(/:|,|\[|\.|#/).first
+  end
+
+  # 与えられたタグがaならhrefを、imgならsrcを返す
+  def get_link_attr(tag)
+    return "href" if tag == "a"
+    return "src" if tag == "img"
+    return "unknownやで"
+  end
+
+  # 与えられたURLから、セレクタに従って画像のURLを返す
+  def get_image_urls(url, nest = 0)
+    css = @image_selector[nest]
+    attribute = get_link_attr( get_last_tag(css) )
+    urls = []
+    get_doc(url).css(css).each{ |node| urls << node[attribute] }
+    return urls if nest >= (@image_selector.length - 1)
+    child_urls = []
+    # 得られたURLそれぞれに対して次のセレクタを実行する
+    urls.each{ |url| child_urls << get_image_urls(url, nest + 1) }
+    child_urls.flatten
   end
 end
