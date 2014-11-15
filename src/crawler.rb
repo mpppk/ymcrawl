@@ -5,13 +5,15 @@ require 'addressable/uri'
 
 class Crawler
   def initialize(dir, site_data)
-    @image_selector = site_data["css"]["image"]
+    @selector = {}
+    @selector[:image] = site_data["css"]["image"]
+    @selector[:image_title] = site_data["css"]["image_title"]
     @dir = dir
   end
   
   # 与えられたcssセレクタから画像を抽出する
   def get_images(url)
-    get_urls(url, :image).each{|url| save_image(url, "test")}
+    get_contents(url, :image).zip(get_contents(url, :image_title)) { |url, title| save_image(url, title) }
   end
   
   private
@@ -79,8 +81,9 @@ class Crawler
   end
 
   # 画像のタイトルへのURLを返す
-  def get_image_title_link_attr(tag)
-    # 未実装
+  def get_image_title(node, tag)
+    title = (tag == "img") ? node["title"] : node.content
+    (title == nil) ? "noname" : title
   end
 
   # 記事タイトルへのURLを返す
@@ -89,21 +92,21 @@ class Crawler
   end
 
   # 対象に応じてURLを返す
-  def get_url(node, tag, target)
+  def get_content(node, tag, target)
     return get_image_url(node, tag) if target == :image
-    return get_image_title_url(node, tag) if target == :image_title
-    return get_title_url(node, tag) if target == :title
+    return get_image_title(node, tag) if target == :image_title
+    return get_title(node, tag) if target == :title
   end
 
   # 与えられたURLから、セレクタに従って画像のURLを返す
-  def get_urls(url, target, nest = 0)
-    css = @image_selector[nest]
+  def get_contents(url, target, nest = 0)
+    css = @selector[target][nest]
     urls = []
-    get_doc(url).css(css).each{ |node| urls << get_url(node, get_last_tag(css), target) }
-    return urls if nest >= (@image_selector.length - 1)
+    get_doc(url).css(css).each{ |node| urls << get_content(node, get_last_tag(css), target) }
+    return urls if nest >= (@selector[target].length - 1)
     child_urls = []
     # 得られたURLそれぞれに対して次のセレクタを実行する
-    urls.each{ |url| child_urls << get_urls(url, target, nest + 1) }
+    urls.each{ |url| child_urls << get_contents(url, target, nest + 1) }
     child_urls.flatten
   end
 end
