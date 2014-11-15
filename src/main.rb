@@ -1,4 +1,4 @@
-require_relative 'naver-crawler'
+require_relative 'crawler'
 require 'json'
 
 json = []
