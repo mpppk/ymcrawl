@@ -4,18 +4,28 @@ require 'kconv'
 require 'addressable/uri'
 
 class Crawler
+  INDEX_STR = "{index}" # jsonファイルでINDEX番号が入る場所を表す文字列
   def initialize(dir, site_data)
     @selector = {}
     @selector[:image] = site_data["css"]["image"]
     @selector[:image_title] = site_data["css"]["image_title"]
     @selector[:title] = site_data["css"]["title"]
+    @selector[:page_index_max] = site_data["css"]["page_index_max"]
+    @page_index_min = site_data["page_index_min"]
+    @next_page_appendix = site_data["next_page_appendix"]
     @dir = dir
   end
   
   # 与えられたcssセレクタから画像を抽出する
-  def save_images(url)
-    dst_dir = "#{@dir}/#{get_contents(url, :title).first}"
-    get_contents(url, :image).zip(get_contents(url, :image_title)) { |url, title| save_image(dst_dir, url, title) }
+  def save_images(original_url)
+    dst_dir = "#{@dir}/#{get_contents(original_url, :title).first}"
+    (@page_index_min..get_contents(original_url, :page_index_max).first ).each do |page_index|
+      url = "#{original_url}#{get_next_page_appendix_with_index(page_index)}"
+      puts "URL: #{url}"
+      get_contents(url, :image).zip(get_contents(url, :image_title)) do |url, title|
+        save_image(dst_dir, url, title) unless url == nil
+      end
+    end
   end
   
   private
@@ -29,16 +39,19 @@ class Crawler
   def get_doc(url)
     html = open(normalize_url(url), "r:binary").read
     Nokogiri::HTML(html.toutf8, nil, 'utf-8')
+  rescue => ex
+    puts "failed URL: #{url}"
+    throw ex
   end
 
   # ファイル名が既にimgディレクトリに存在していた場合はインデックスを付与する
-  def get_unique_name(org_name)
+  def get_unique_name(dir, org_name)
     basename = (org_name == nil) ? "noname" : File.basename(org_name, '.*')
     ext = File.extname(org_name)
-    return "#{basename}#{ext}" unless FileTest.exist?("#{@dir}/#{basename}#{ext}")
+    return "#{basename}#{ext}" unless FileTest.exist?("#{dir}/#{basename}#{ext}")
     index = 1
     retname = "#{basename}#{index}#{ext}"
-    while FileTest.exist?("#{@dir}/#{retname}") do
+    while FileTest.exist?("#{dir}/#{retname}") do
       index = index + 1
       retname = "#{basename}#{index}#{ext}"
     end
@@ -51,7 +64,7 @@ class Crawler
     # ready filepath
     filename = "#{title}#{File.extname(url)}"
     cnt = 0
-    filePath = "#{dst_dir}/#{get_unique_name(filename)}"
+    filePath = "#{dst_dir}/#{get_unique_name(dst_dir, filename)}"
     # fileName folder if not exist
     FileUtils.mkdir_p(dst_dir) unless FileTest.exist?(dst_dir)
 
@@ -91,11 +104,19 @@ class Crawler
   # 記事タイトルを返す
   def get_title(node, tag) node.content end
 
+  def get_next_page_appendix_with_index(index)
+    @next_page_appendix.gsub("{index}", index.to_s)
+  end
+
+  # 記事が何ページまであるかを返す
+  def get_page_index_max(node, tag) node.content.to_i end
+
   # 対象に応じてURLを返す
   def get_content(node, tag, target)
     return get_image_url(node, tag) if target == :image
     return get_image_title(node, tag) if target == :image_title
     return get_title(node, tag) if target == :title
+    return get_page_index_max(node, tag) if target == :page_index_max
   end
 
   # 与えられたURLから、セレクタに従って画像のURLを返す
@@ -108,5 +129,8 @@ class Crawler
     # 得られたURLそれぞれに対して次のセレクタを実行する
     contents.each{ |content| child_content << get_contents(content, target, nest + 1) }
     child_content.flatten
+  rescue => ex
+    puts "Error in get_contents: #{ex}"
+    return nil
   end
 end
