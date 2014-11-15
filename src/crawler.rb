@@ -4,13 +4,24 @@ require 'kconv'
 require 'addressable/uri'
 
 class Crawler
-  def initialize(selector, dir)
-    @selector = selector
+  def initialize(dir, site_data)
+    @selector = {}
+    @selector[:image] = site_data["css"]["image"]
+    @selector[:image_title] = site_data["css"]["image_title"]
     @dir = dir
   end
-
+  
+  # 与えられたcssセレクタから画像を抽出する
+  def get_images(url)
+    get_contents(url, :image).zip(get_contents(url, :image_title)) { |url, title| save_image(url, title) }
+  end
+  
+  private
   # 日本語のURLを読み込める形に変換する
-  def normalize_url(url) Addressable::URI.parse(url).normalize.to_s end
+  def normalize_url(url)
+    puts "---- URL is null in normalize_url!!!!!!!!!!!!! ----" if url == nil
+    Addressable::URI.parse(url).normalize.to_s
+  end
 
   # 与えられたURLをパースして返す
   def get_doc(url)
@@ -34,6 +45,7 @@ class Crawler
 
   # 指定されたリンク先の画像を保存する
   def save_image(url, title)
+    puts "src: #{url}"
     # ready filepath
     filename = "#{title}#{File.extname(url)}"
     cnt = 0
@@ -44,7 +56,7 @@ class Crawler
     # write image adata
     begin
       open(filePath, 'wb') do |output|
-        puts filePath
+        puts "dst: #{filePath}"
         open(normalize_url(url)) do |data|
           output.write(data.read)
         end
@@ -53,5 +65,48 @@ class Crawler
       puts "image not exist."
       File.delete filePath
     end
+  end
+
+  # セレクタの一番最後のタグが何かを返す。擬似クラスなどは取り除く
+  def get_last_tag(selector)
+    # 一番最後の要素だけを返す。(擬似クラスなどは省く)
+    selector.split(/\s|\+|>/).last.split(/:|,|\[|\.|#/).first
+  end
+
+  # 画像へのURLを返す
+  def get_image_url(node, tag)
+    return node["href"] if tag == "a"
+    return node["src"] if tag == "img"
+    raise ArgumentError, "invalid argument in get_image_url"
+  end
+
+  # 画像のタイトルへのURLを返す
+  def get_image_title(node, tag)
+    title = (tag == "img") ? node["title"] : node.content
+    (title == nil) ? "noname" : title
+  end
+
+  # 記事タイトルへのURLを返す
+  def get_title_link_attr(tag)
+    # 未実装
+  end
+
+  # 対象に応じてURLを返す
+  def get_content(node, tag, target)
+    return get_image_url(node, tag) if target == :image
+    return get_image_title(node, tag) if target == :image_title
+    return get_title(node, tag) if target == :title
+  end
+
+  # 与えられたURLから、セレクタに従って画像のURLを返す
+  def get_contents(url, target, nest = 0)
+    css = @selector[target][nest]
+    urls = []
+    get_doc(url).css(css).each{ |node| urls << get_content(node, get_last_tag(css), target) }
+    return urls if nest >= (@selector[target].length - 1)
+    child_urls = []
+    # 得られたURLそれぞれに対して次のセレクタを実行する
+    urls.each{ |url| child_urls << get_contents(url, target, nest + 1) }
+    child_urls.flatten
   end
 end
