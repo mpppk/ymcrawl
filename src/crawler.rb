@@ -11,7 +11,7 @@ class Crawler
   
   # 与えられたcssセレクタから画像を抽出する
   def get_images(url)
-    get_image_urls(url).each{|url| save_image(url, "test")}
+    get_urls(url, :image).each{|url| save_image(url, "test")}
   end
   
   private
@@ -71,23 +71,39 @@ class Crawler
     selector.split(/\s|\+|>/).last.split(/:|,|\[|\.|#/).first
   end
 
-  # 与えられたタグがaならhrefを、imgならsrcを返す
-  def get_link_attr(tag)
-    return "href" if tag == "a"
-    return "src" if tag == "img"
-    return "unknownやで"
+  # 画像へのURLを返す
+  def get_image_url(node, tag)
+    return node["href"] if tag == "a"
+    return node["src"] if tag == "img"
+    raise ArgumentError, "invalid argument in get_image_url"
+  end
+
+  # 画像のタイトルへのURLを返す
+  def get_image_title_link_attr(tag)
+    # 未実装
+  end
+
+  # 記事タイトルへのURLを返す
+  def get_title_link_attr(tag)
+    # 未実装
+  end
+
+  # 対象に応じてURLを返す
+  def get_url(node, tag, target)
+    return get_image_url(node, tag) if target == :image
+    return get_image_title_url(node, tag) if target == :image_title
+    return get_title_url(node, tag) if target == :title
   end
 
   # 与えられたURLから、セレクタに従って画像のURLを返す
-  def get_image_urls(url, nest = 0)
+  def get_urls(url, target, nest = 0)
     css = @image_selector[nest]
-    attribute = get_link_attr( get_last_tag(css) )
     urls = []
-    get_doc(url).css(css).each{ |node| urls << node[attribute] }
+    get_doc(url).css(css).each{ |node| urls << get_url(node, get_last_tag(css), target) }
     return urls if nest >= (@image_selector.length - 1)
     child_urls = []
     # 得られたURLそれぞれに対して次のセレクタを実行する
-    urls.each{ |url| child_urls << get_image_urls(url, nest + 1) }
+    urls.each{ |url| child_urls << get_urls(url, target, nest + 1) }
     child_urls.flatten
   end
 end
