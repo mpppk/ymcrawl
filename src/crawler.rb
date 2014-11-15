@@ -8,12 +8,14 @@ class Crawler
     @selector = {}
     @selector[:image] = site_data["css"]["image"]
     @selector[:image_title] = site_data["css"]["image_title"]
+    @selector[:title] = site_data["css"]["title"]
     @dir = dir
   end
   
   # 与えられたcssセレクタから画像を抽出する
   def save_images(url)
-    get_contents(url, :image).zip(get_contents(url, :image_title)) { |url, title| save_image(url, title) }
+    dst_dir = "#{@dir}/#{get_contents(url, :title).first}"
+    get_contents(url, :image).zip(get_contents(url, :image_title)) { |url, title| save_image(dst_dir, url, title) }
   end
   
   private
@@ -44,14 +46,14 @@ class Crawler
   end
 
   # 指定されたリンク先の画像を保存する
-  def save_image(url, title)
+  def save_image(dst_dir, url, title)
     puts "src: #{url}"
     # ready filepath
     filename = "#{title}#{File.extname(url)}"
     cnt = 0
-    filePath = "#{@dir}/#{get_unique_name(filename)}"
+    filePath = "#{dst_dir}/#{get_unique_name(filename)}"
     # fileName folder if not exist
-    FileUtils.mkdir_p(@dir) unless FileTest.exist?(@dir)
+    FileUtils.mkdir_p(dst_dir) unless FileTest.exist?(dst_dir)
 
     # write image adata
     begin
@@ -87,9 +89,7 @@ class Crawler
   end
 
   # 記事タイトルへのURLを返す
-  def get_title_link_attr(tag)
-    # 未実装
-  end
+  def get_title(node, tag) node.content end
 
   # 対象に応じてURLを返す
   def get_content(node, tag, target)
