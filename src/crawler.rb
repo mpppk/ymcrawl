@@ -82,13 +82,13 @@ class Crawler
     raise ArgumentError, "invalid argument in get_image_url"
   end
 
-  # 画像のタイトルへのURLを返す
+  # 画像のタイトルを返す
   def get_image_title(node, tag)
     title = (tag == "img") ? node["title"] : node.content
     (title == nil) ? "noname" : title
   end
 
-  # 記事タイトルへのURLを返す
+  # 記事タイトルを返す
   def get_title(node, tag) node.content end
 
   # 対象に応じてURLを返す
