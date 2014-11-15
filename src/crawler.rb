@@ -12,7 +12,7 @@ class Crawler
   end
   
   # 与えられたcssセレクタから画像を抽出する
-  def get_images(url)
+  def save_images(url)
     get_contents(url, :image).zip(get_contents(url, :image_title)) { |url, title| save_image(url, title) }
   end
   
@@ -101,12 +101,12 @@ class Crawler
   # 与えられたURLから、セレクタに従って画像のURLを返す
   def get_contents(url, target, nest = 0)
     css = @selector[target][nest]
-    urls = []
-    get_doc(url).css(css).each{ |node| urls << get_content(node, get_last_tag(css), target) }
-    return urls if nest >= (@selector[target].length - 1)
-    child_urls = []
+    contents = []
+    get_doc(url).css(css).each{ |node| contents << get_content(node, get_last_tag(css), target) }
+    return contents if nest >= (@selector[target].length - 1)
+    child_content = []
     # 得られたURLそれぞれに対して次のセレクタを実行する
-    urls.each{ |url| child_urls << get_contents(url, target, nest + 1) }
-    child_urls.flatten
+    contents.each{ |content| child_content << get_contents(content, target, nest + 1) }
+    child_content.flatten
   end
 end
