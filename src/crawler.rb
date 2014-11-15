@@ -16,7 +16,10 @@ class Crawler
   
   private
   # 日本語のURLを読み込める形に変換する
-  def normalize_url(url) Addressable::URI.parse(url).normalize.to_s end
+  def normalize_url(url)
+    puts "---- URL is null in normalize_url!!!!!!!!!!!!! ----" if url == nil
+    Addressable::URI.parse(url).normalize.to_s
+  end
 
   # 与えられたURLをパースして返す
   def get_doc(url)
