@@ -14,7 +14,7 @@ class HostManager
     host = URI( normalize_url(url) ).host
     unless @host_list[host] == nil then
       time_diff = Time.now - @host_list[host]
-      puts "sleep: #{sleep(@wait_time - time_diff)}" if time_diff < @wait_time
+      puts "sleep: #{sleep(@wait_time - time_diff)}sec." if time_diff < @wait_time
     end
     @host_list[host] = Time.now
   end
@@ -45,7 +45,6 @@ class Crawler
     dst_dir = "#{@dir}/#{get_contents(original_url, :title).first}"
     (@page_index_min..get_contents(original_url, :page_index_max).first ).each do |page_index|
       url = "#{original_url}#{get_next_page_appendix_with_index(page_index)}"
-      puts "URL: #{url}"
       get_contents(url, :image).zip(get_contents(url, :image_title)) do |url, title|
         save_image(dst_dir, url, title) unless url == nil
       end
