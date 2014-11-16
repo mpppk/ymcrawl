@@ -31,12 +31,12 @@ class Crawler
   def initialize(dir, site_data, wait_time)
     @h_mng = HostManager.new(wait_time)
     @selector = {}
-    @selector[:image] = site_data["css"]["image"]
-    @selector[:image_title] = site_data["css"]["image_title"]
-    @selector[:title] = site_data["css"]["title"]
-    @selector[:page_index_max] = site_data["css"]["page_index_max"]
-    @page_index_min = site_data["page_index_min"]
-    @next_page_appendix = site_data["next_page_appendix"]
+    @selector[:image] = site_data[:css][:image]
+    @selector[:image_title] = site_data[:css][:image_title]
+    @selector[:title] = site_data[:css][:title]
+    @selector[:page_index_max] = site_data[:css][:page_index_max]
+    @page_index_min = site_data[:page_index_min]
+    @next_page_appendix = site_data[:next_page_appendix]
     @dir = dir
   end
   

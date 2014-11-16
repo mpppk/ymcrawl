@@ -1,7 +1,11 @@
 require_relative 'crawler'
 require 'json'
 
-json = []
-open("site.json"){ |io| json = JSON.load(io) }
-crawler = Crawler.new("./img", json["naver"], 2)
-crawler.save_images("http://matome.naver.jp/odai/2140544391008706001")
+SITE_JSON_NAME = "site.json"
+setting = JSON.parse( File.open("YMCrawlfile").read, {:symbolize_names => true} )
+json_file_pass = FileTest.exist?(SITE_JSON_NAME) ? SITE_JSON_NAME : setting[:site_json]
+puts "reading site json file from #{json_file_pass}"
+json = JSON.parse( open(json_file_pass).read, {:symbolize_names => true} )
+File.write( SITE_JSON_NAME, JSON.unparse(json) ) unless FileTest.exist?(SITE_JSON_NAME)
+crawler = Crawler.new(setting[:dst_dir], json[:naver], setting[:wait_time])
+ARGV.each{ |v| crawler.save_images(v) }
