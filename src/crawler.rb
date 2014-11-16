@@ -3,9 +3,33 @@ require 'nokogiri'
 require 'kconv'
 require 'addressable/uri'
 
+class HostManager
+  def initialize(wait_time)
+    @host_list = {}
+    @wait_time = wait_time
+  end
+
+  # 最後にアクセスした日時を取得する
+  def wait(url)
+    host = URI( normalize_url(url) ).host
+    unless @host_list[host] == nil then
+      time_diff = Time.now - @host_list[host]
+      puts "sleep: #{sleep(@wait_time - time_diff)}" if time_diff < @wait_time
+    end
+    @host_list[host] = Time.now
+  end
+
+  # 日本語のURLを読み込める形に変換する
+  def normalize_url(url)
+    puts "---- URL is null in normalize_url!!!!!!!!!!!!! ----" if url == nil
+    Addressable::URI.parse(url).normalize.to_s
+  end
+end
+
 class Crawler
   INDEX_STR = "{index}" # jsonファイルでINDEX番号が入る場所を表す文字列
-  def initialize(dir, site_data)
+  def initialize(dir, site_data, wait_time)
+    @h_mng = HostManager.new(wait_time)
     @selector = {}
     @selector[:image] = site_data["css"]["image"]
     @selector[:image_title] = site_data["css"]["image_title"]
@@ -37,6 +61,8 @@ class Crawler
 
   # 与えられたURLをパースして返す
   def get_doc(url)
+    puts "get_doc from #{url}"
+    @h_mng.wait(url)
     html = open(normalize_url(url), "r:binary").read
     Nokogiri::HTML(html.toutf8, nil, 'utf-8')
   rescue => ex
@@ -65,9 +91,9 @@ class Crawler
     filename = "#{title}#{File.extname(url)}"
     cnt = 0
     filePath = "#{dst_dir}/#{get_unique_name(dst_dir, filename)}"
+    @h_mng.wait(url)
     # fileName folder if not exist
     FileUtils.mkdir_p(dst_dir) unless FileTest.exist?(dst_dir)
-
     # write image adata
     begin
       open(filePath, 'wb') do |output|
