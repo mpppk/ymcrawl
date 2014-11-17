@@ -18,7 +18,7 @@ class HostManager
 
   # 最後にアクセスした日時を取得する
   def wait(url)
-    host = URI( normalize_url(url) ).host
+    host = URI( URLUtil.normalize_url(url) ).host
     unless @host_list[host] == nil then
       time_diff = Time.now - @host_list[host]
       puts "sleep: #{sleep(@wait_time - time_diff)}sec." if time_diff < @wait_time
