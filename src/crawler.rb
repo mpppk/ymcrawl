@@ -2,6 +2,7 @@ require 'open-uri'
 require 'nokogiri'
 require 'kconv'
 require 'addressable/uri'
+require 'singleton'
 
 # URLに関する処理をまとめたクラス
 class URLUtil
@@ -28,10 +29,14 @@ end
 
 # ホストごとの処理を管理するクラス
 class HostManager
-  def initialize(wait_time)
+  include Singleton
+  DEFAULT_WAIT_TIME = 2
+  def initialize
     @host_list = {}
-    @wait_time = wait_time
+    @wait_time = DEFAULT_WAIT_TIME
   end
+
+  def set_wait_time(wait_time) @wait_time = wait_time end
 
   # 最後にアクセスした日時を取得する
   def wait(url)
@@ -45,9 +50,11 @@ class HostManager
 end
 
 class Crawler
+  class YMCrawlError < StandardError; end
+
   INDEX_STR = "{index}" # jsonファイルでINDEX番号が入る場所を表す文字列
   def initialize(dir, site_data, wait_time)
-    @h_mng = HostManager.new(wait_time)
+    HostManager.instance.set_wait_time(wait_time)
     @selectors = {}
     @selectors[:image]          = site_data[:css][:image].map          { |s| Selector.new(s) }
     @selectors[:image_title]    = site_data[:css][:image_title].map    { |s| Selector.new(s) }
@@ -73,7 +80,7 @@ class Crawler
   # 与えられたURLをパースして返す
   def get_doc(url)
     puts "get_doc from #{url}"
-    @h_mng.wait(url)
+    HostManager.instance.wait(url)
     html = open(URLUtil.normalize_url(url), "r:binary").read
     Nokogiri::HTML(html.toutf8, nil, 'utf-8')
   rescue => ex
@@ -102,7 +109,7 @@ class Crawler
     filename = "#{title}#{File.extname(url)}"
     cnt = 0
     filePath = "#{dst_dir}/#{get_unique_name(dst_dir, filename)}"
-    @h_mng.wait(url)
+    HostManager.instance.wait(url)
     # fileName folder if not exist
     FileUtils.mkdir_p(dst_dir) unless FileTest.exist?(dst_dir)
     # write image adata
