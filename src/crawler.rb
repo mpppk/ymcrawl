@@ -83,9 +83,10 @@ class Crawler
     HostManager.instance.wait(url)
     html = open(URLUtil.normalize_url(url), "r:binary").read
     Nokogiri::HTML(html.toutf8, nil, 'utf-8')
-  rescue => ex
+  rescue OpenURI::HTTPError => ex
     puts "failed URL: #{url}"
-    throw ex
+    puts "HTTP Error message: #{ex.message}"
+    raise YMCrawlError.new(ex.message)
   end
 
   # ファイル名が既にimgディレクトリに存在していた場合はインデックスを付与する
@@ -164,8 +165,8 @@ class Crawler
     return contents if nest >= (@selectors[target].length - 1)
     # 得られたURLそれぞれに対して次のセレクタを実行する
     contents.inject([]){ |r, c| r << get_contents(c, target, nest + 1) }.flatten
-  rescue => ex
-    puts "Error in get_contents: #{ex}"
+  rescue YMCrawlError => ex
+    puts "error in get_contents #{ex}"
     return nil
   end
 end
