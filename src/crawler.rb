@@ -3,6 +3,13 @@ require 'nokogiri'
 require 'kconv'
 require 'addressable/uri'
 
+class URLUtil
+  def self.normalize_url(url)
+    puts "---- URL is null in normalize_url!!!!!!!!!!!!! ----" if url == nil
+    Addressable::URI.parse(url).normalize.to_s
+  end
+end
+
 class HostManager
   def initialize(wait_time)
     @host_list = {}
@@ -17,12 +24,6 @@ class HostManager
       puts "sleep: #{sleep(@wait_time - time_diff)}sec." if time_diff < @wait_time
     end
     @host_list[host] = Time.now
-  end
-
-  # 日本語のURLを読み込める形に変換する
-  def normalize_url(url)
-    puts "---- URL is null in normalize_url!!!!!!!!!!!!! ----" if url == nil
-    Addressable::URI.parse(url).normalize.to_s
   end
 end
 
@@ -52,17 +53,11 @@ class Crawler
   end
   
   private
-  # 日本語のURLを読み込める形に変換する
-  def normalize_url(url)
-    puts "---- URL is null in normalize_url!!!!!!!!!!!!! ----" if url == nil
-    Addressable::URI.parse(url).normalize.to_s
-  end
-
   # 与えられたURLをパースして返す
   def get_doc(url)
     puts "get_doc from #{url}"
     @h_mng.wait(url)
-    html = open(normalize_url(url), "r:binary").read
+    html = open(URLUtil.normalize_url(url), "r:binary").read
     Nokogiri::HTML(html.toutf8, nil, 'utf-8')
   rescue => ex
     puts "failed URL: #{url}"
@@ -97,7 +92,7 @@ class Crawler
     begin
       open(filePath, 'wb') do |output|
         puts "dst: #{filePath}"
-        open(normalize_url(url)) do |data|
+        open(URLUtil.normalize_url(url)) do |data|
           output.write(data.read)
         end
       end
