@@ -49,10 +49,70 @@ class HostManager
   end
 end
 
-class Crawler
-  class YMCrawlError < StandardError; end
+# あるURLから取得できるHTMLドキュメントを抽象化したクラス
+class Page
+  class PageError < StandardError; end
+  def initialize(url)
+    @url = url
+    @doc = get_doc
+  end
 
+  # 指定したcssセレクタに合致する要素を表すクラスの配列を返す
+  def search_elements(selector) @doc.css(selector).map{ |doc| Element.new(doc) } end
+
+  private
+  # 与えられたURLをパースして返す
+  def get_doc
+    puts "get_doc from #{@url}"
+    HostManager.instance.wait(@url)
+    html = open(URLUtil.normalize_url(@url), "r:binary").read
+    Nokogiri::HTML(html.toutf8, nil, 'utf-8')
+  rescue OpenURI::HTTPError => ex
+    puts "failed URL: #{@url}"
+    puts "HTTP Error message: #{ex.message}"
+    raise PageError.new(ex.message)
+  end
+end
+
+# セレクタにより抽出されたPageの一部を表すクラス
+class Element
+  def initialize(doc) @doc = doc end
+
+  def get_url; @doc["href"] end
+
+  # 画像へのURLを返す
+  def get_image_url
+    return @doc["href"] if @doc.name == "a"
+    return @doc["src"]  if @doc.name == "img"
+    raise ArgumentError, "in Element"
+  end
+
+  # 画像のタイトルを返す
+  def get_image_title
+    title = (@doc.name == "img") ? @doc["title"] : @doc.content
+    (title == nil) ? "noname" : title
+  end
+
+  # 記事タイトルを返す
+  def get_title; @doc.content end
+
+  # 記事が何ページまであるかを返す
+  def get_page_index_max; @doc.content.to_i end
+
+  # 対象に応じてURLを返す
+  def get_content(target)
+    return get_url            if target == :url
+    return get_image_url      if target == :image
+    return get_image_title    if target == :image_title
+    return get_title          if target == :title
+    return get_page_index_max if target == :page_index_max
+  end
+end
+
+# 画像のスクレイピングを行うクラス
+class Crawler
   INDEX_STR = "{index}" # jsonファイルでINDEX番号が入る場所を表す文字列
+
   def initialize(dir, site_data, wait_time)
     HostManager.instance.set_wait_time(wait_time)
     @selectors = {}
@@ -77,18 +137,6 @@ class Crawler
   end
   
   private
-  # 与えられたURLをパースして返す
-  def get_doc(url)
-    puts "get_doc from #{url}"
-    HostManager.instance.wait(url)
-    html = open(URLUtil.normalize_url(url), "r:binary").read
-    Nokogiri::HTML(html.toutf8, nil, 'utf-8')
-  rescue OpenURI::HTTPError => ex
-    puts "failed URL: #{url}"
-    puts "HTTP Error message: #{ex.message}"
-    raise YMCrawlError.new(ex.message)
-  end
-
   # ファイル名が既にimgディレクトリに存在していた場合はインデックスを付与する
   def get_unique_name(dir, org_name)
     basename = (org_name == nil) ? "noname" : File.basename(org_name, '.*')
@@ -108,7 +156,6 @@ class Crawler
     puts "src: #{url}"
     # ready filepath
     filename = "#{title}#{File.extname(url)}"
-    cnt = 0
     filePath = "#{dst_dir}/#{get_unique_name(dst_dir, filename)}"
     HostManager.instance.wait(url)
     # fileName folder if not exist
@@ -127,45 +174,18 @@ class Crawler
     end
   end
 
-  # 画像へのURLを返す
-  def get_image_url(node, tag)
-    return node["href"] if tag == "a"
-    return node["src"] if tag == "img"
-    raise ArgumentError, "invalid argument in get_image_url"
-  end
-
-  # 画像のタイトルを返す
-  def get_image_title(node, tag)
-    title = (tag == "img") ? node["title"] : node.content
-    (title == nil) ? "noname" : title
-  end
-
-  # 記事タイトルを返す
-  def get_title(node, tag) node.content end
-
-  def get_next_page_appendix_with_index(index)
-    @next_page_appendix.gsub("{index}", index.to_s)
-  end
-
-  # 記事が何ページまであるかを返す
-  def get_page_index_max(node, tag) node.content.to_i end
-
-  # 対象に応じてURLを返す
-  def get_content(node, tag, target)
-    return get_image_url(node, tag) if target == :image
-    return get_image_title(node, tag) if target == :image_title
-    return get_title(node, tag) if target == :title
-    return get_page_index_max(node, tag) if target == :page_index_max
-  end
+  def get_next_page_appendix_with_index(index) @next_page_appendix.gsub("{index}", index.to_s) end
 
   # 与えられたURLから、セレクタに従って画像のURLを返す
   def get_contents(url, target, nest = 0)
     selector = @selectors[target][nest]
-    contents = get_doc(url).css(selector.to_s).inject([]){ |c, node| c << get_content(node, selector.get_last_tag, target) }
-    return contents if nest >= (@selectors[target].length - 1)
+    if nest >= (@selectors[target].length - 1)
+      return Page.new(url).search_elements(selector.to_s).map{ |cn| cn.get_content(target) } 
+    end
     # 得られたURLそれぞれに対して次のセレクタを実行する
-    contents.inject([]){ |r, c| r << get_contents(c, target, nest + 1) }.flatten
-  rescue YMCrawlError => ex
+    contents = Page.new(url).search_elements(selector.to_s).map{ |cn| cn.get_content(:url) } 
+    contents.map{ |c| get_contents(c, target, nest + 1) }.flatten
+  rescue Page::PageError => ex
     puts "error in get_contents #{ex}"
     return nil
   end
