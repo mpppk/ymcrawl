@@ -3,6 +3,7 @@ require 'nokogiri'
 require 'kconv'
 require 'addressable/uri'
 
+# URLに関する処理をまとめたクラス
 class URLUtil
   def self.normalize_url(url)
     puts "---- URL is null in normalize_url!!!!!!!!!!!!! ----" if url == nil
@@ -10,6 +11,22 @@ class URLUtil
   end
 end
 
+# CSSセレクタを表すクラス
+class Selector
+  def initialize(css)
+    @selector = css
+  end
+  
+  def to_s ;@selector end
+
+  # セレクタの一番最後のタグが何かを返す。擬似クラスなどは取り除く
+  def get_last_tag
+    # 一番最後の要素だけを返す。(擬似クラスなどは省く)
+    @selector.split(/\s|\+|>/).last.split(/:|,|\[|\.|#/).first
+  end
+end
+
+# ホストごとの処理を管理するクラス
 class HostManager
   def initialize(wait_time)
     @host_list = {}
@@ -31,13 +48,13 @@ class Crawler
   INDEX_STR = "{index}" # jsonファイルでINDEX番号が入る場所を表す文字列
   def initialize(dir, site_data, wait_time)
     @h_mng = HostManager.new(wait_time)
-    @selector = {}
-    @selector[:image] = site_data[:css][:image]
-    @selector[:image_title] = site_data[:css][:image_title]
-    @selector[:title] = site_data[:css][:title]
-    @selector[:page_index_max] = site_data[:css][:page_index_max]
-    @page_index_min = site_data[:page_index_min]
-    @next_page_appendix = site_data[:next_page_appendix]
+    @selectors = {}
+    @selectors[:image]          = site_data[:css][:image].map          { |s| Selector.new(s) }
+    @selectors[:image_title]    = site_data[:css][:image_title].map    { |s| Selector.new(s) }
+    @selectors[:title]          = site_data[:css][:title].map          { |s| Selector.new(s) }
+    @selectors[:page_index_max] = site_data[:css][:page_index_max].map { |s| Selector.new(s) }
+    @page_index_min            = site_data[:page_index_min]
+    @next_page_appendix        = site_data[:next_page_appendix]
     @dir = dir
   end
   
@@ -102,12 +119,6 @@ class Crawler
     end
   end
 
-  # セレクタの一番最後のタグが何かを返す。擬似クラスなどは取り除く
-  def get_last_tag(selector)
-    # 一番最後の要素だけを返す。(擬似クラスなどは省く)
-    selector.split(/\s|\+|>/).last.split(/:|,|\[|\.|#/).first
-  end
-
   # 画像へのURLを返す
   def get_image_url(node, tag)
     return node["href"] if tag == "a"
@@ -141,9 +152,9 @@ class Crawler
 
   # 与えられたURLから、セレクタに従って画像のURLを返す
   def get_contents(url, target, nest = 0)
-    css = @selector[target][nest]
-    contents = get_doc(url).css(css).inject([]){ |c, node| c << get_content(node, get_last_tag(css), target) }
-    return contents if nest >= (@selector[target].length - 1)
+    selectors = @selectors[target][nest]
+    contents = get_doc(url).css(selectors).inject([]){ |c, node| c << get_content(node, selectors.get_last_tag, target) }
+    return contents if nest >= (@selectors[target].length - 1)
     # 得られたURLそれぞれに対して次のセレクタを実行する
     contents.inject([]){ |r, c| r << get_contents(c, target, nest + 1) }.flatten
   rescue => ex
