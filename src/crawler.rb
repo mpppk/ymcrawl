@@ -147,13 +147,10 @@ class Crawler
   # 与えられたURLから、セレクタに従って画像のURLを返す
   def get_contents(url, target, nest = 0)
     css = @selector[target][nest]
-    contents = []
-    get_doc(url).css(css).each{ |node| contents << get_content(node, get_last_tag(css), target) }
+    contents = get_doc(url).css(css).inject([]){ |c, node| c << get_content(node, get_last_tag(css), target) }
     return contents if nest >= (@selector[target].length - 1)
-    child_content = []
     # 得られたURLそれぞれに対して次のセレクタを実行する
-    contents.each{ |content| child_content << get_contents(content, target, nest + 1) }
-    child_content.flatten
+    contents.inject([]){ |r, c| r << get_contents(c, target, nest + 1) }.flatten
   rescue => ex
     puts "Error in get_contents: #{ex}"
     return nil
