@@ -1,1 +1,8 @@
-sudo docker run -it --rm -v "$(pwd)":/usr/src/myapp -w /usr/src/myapp mpppk/ymcrawl ruby src/main.rb $1
+cat <<__EOT__
+arguments:
+  $1
+  $2
+  $3
+nums: $#
+__EOT__
+sudo docker run -it --rm -v "$(pwd)":/usr/src/myapp -w /usr/src/myapp mpppk/ymcrawl $1 $2 $3
