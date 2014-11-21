@@ -1,0 +1,9 @@
+{
+  "type": "object",
+  "required": ["app_key", "app_secret", "access_token"],
+  "properties": {
+    "app_key": {"type": "string", "default": ""},
+    "app_secret": {"type": "string", "default": ""},
+    "access_token": {"type": "string", "default": ""}
+  }
+}
