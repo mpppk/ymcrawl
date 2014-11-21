@@ -90,11 +90,12 @@ crawler        = Crawler.new(setting[:dst_dir], json[:naver], setting[:wait_time
 file_dirs      = ARGV.map{ |v| crawler.save_images(v) }
 exit if setting[:save_to] == "local"
 
-zip_dirs   = file_dirs.map{ |dir| zip_dir(dir) }
+zip_paths   = file_dirs.map{ |dir| zip_dir(dir) }
 file_dirs.each{ |dir| remove_dir(dir) }
 
 uploader = Uploader.new(setting).get_logined_uploader
-zip_dirs.each do |dir|
-  puts "uploading #{dir} to dropbox"
-  uploader.put([dir])
+zip_paths.each do |path|
+  puts "uploading #{path} to dropbox"
+  uploader.put([path])
+  File::delete(path)
 end
