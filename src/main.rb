@@ -5,6 +5,7 @@ require 'json'
 require 'zipruby'
 require 'find'
 require 'kconv'
+require 'json-schema'
 
 option={}
 OptionParser.new do |opt|
@@ -20,6 +21,7 @@ class Uploader
 		@app_secret    = @uploader_data[:app_secret]
 		@access_token    = @uploader_data[:access_token]
 		@uploader      = get_uploader
+		puts "uploader validate: " + JSON::Validator.validate(UPLOADER_SCHEMA_FILE_PASS, @uploader_data, :insert_defaults => true).to_s
 	end
 
 	# 引数に応じてアップロード先のインスタンスを返す
@@ -77,11 +79,15 @@ def zip_dir(src)
 	dst
 end
 
-ORG_SETTING_FILE_PASS  = "YMCrawlfile"
-SETTING_FILE_PASS      = (option.key?(:debug)) ? "#{ORG_SETTING_FILE_PASS}.debug" : ORG_SETTING_FILE_PASS
-SITE_JSON_NAME         = "site.json"
+ORG_SETTING_FILE_PASS     = "YMCrawlfile"
+SETTING_FILE_PASS         = (option.key?(:debug)) ? "#{ORG_SETTING_FILE_PASS}.debug" : ORG_SETTING_FILE_PASS
+SCHEMA_FILE_PASS          = "YMCrawl_schema.json"
+UPLOADER_SCHEMA_FILE_PASS = "uploader_schema.json"
+SITE_JSON_NAME            = "site.json"
 
 setting        = JSON.parse( File.open(SETTING_FILE_PASS).read, {:symbolize_names => true} )
+puts "json validate: " + JSON::Validator.validate(SCHEMA_FILE_PASS, setting, :insert_defaults => true).to_s
+
 json_file_pass = FileTest.exist?(SITE_JSON_NAME) ? SITE_JSON_NAME : setting[:site_json]
 puts "reading site json file from #{json_file_pass}"
 json           = JSON.parse( open(json_file_pass).read, {:symbolize_names => true} )
