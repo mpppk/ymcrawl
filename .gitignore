@@ -2,3 +2,4 @@ img/
 clean.sh
 genGemLock.sh
 *.debug
+site.json
