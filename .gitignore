@@ -1,3 +1,4 @@
 img/
 clean.sh
 genGemLock.sh
+*.debug
