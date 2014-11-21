@@ -1,5 +1,6 @@
 {
 	"dst_dir": "./img",
 	"site_json": "https://dl.dropboxusercontent.com/u/18427716/ymcrawl/site.json",
-	"wait_time": 2
+	"wait_time": 2,
+	"save_to": "local"
 }

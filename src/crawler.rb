@@ -134,6 +134,7 @@ class Crawler
         save_image(dst_dir, url, title) unless url == nil
       end
     end
+    dst_dir
   end
   
   private
