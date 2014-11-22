@@ -116,12 +116,12 @@ class Crawler
   def initialize(dir, site_data, wait_time)
     HostManager.instance.set_wait_time(wait_time)
     @selectors = {}
-    @selectors[:image]          = site_data[:css][:image].map          { |s| Selector.new(s) }
-    @selectors[:image_title]    = site_data[:css][:image_title].map    { |s| Selector.new(s) }
-    @selectors[:title]          = site_data[:css][:title].map          { |s| Selector.new(s) }
-    @selectors[:page_index_max] = site_data[:css][:page_index_max].map { |s| Selector.new(s) }
-    @page_index_min            = site_data[:page_index_min]
-    @next_page_appendix        = site_data[:next_page_appendix]
+    @selectors[:image]          = site_data["css"]["image"].map          { |s| Selector.new(s) }
+    @selectors[:image_title]    = site_data["css"]["image_title"].map    { |s| Selector.new(s) }
+    @selectors[:title]          = site_data["css"]["title"].map          { |s| Selector.new(s) }
+    @selectors[:page_index_max] = site_data["css"]["page_index_max"].map { |s| Selector.new(s) }
+    @page_index_min             = site_data["page_index_min"]
+    @next_page_appendix         = site_data["next_page_appendix"]
     @dir = dir
   end
   

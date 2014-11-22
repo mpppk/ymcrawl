@@ -15,11 +15,11 @@ end
 
 class Uploader
 	def initialize(setting)
-		@uploader_name = setting[:save_to]
-		@uploader_data = setting[:uploader][ setting[:save_to].to_sym ]
-		@app_key       = @uploader_data[:app_key]
-		@app_secret    = @uploader_data[:app_secret]
-		@access_token    = @uploader_data[:access_token]
+		@uploader_name = setting["save_to"]
+		@uploader_data = setting["uploader"][ setting["save_to"] ]
+		@app_key       = @uploader_data["app_key"]
+		@app_secret    = @uploader_data["app_secret"]
+		@access_token  = @uploader_data["access_token"]
 		@uploader      = get_uploader
 		puts "uploader validate: " + JSON::Validator.validate(UPLOADER_SCHEMA_FILE_PASS, @uploader_data, :insert_defaults => true).to_s
 	end
@@ -62,16 +62,16 @@ SCHEMA_FILE_PASS          = "YMCrawl_schema.json"
 UPLOADER_SCHEMA_FILE_PASS = "uploader_schema.json"
 SITE_JSON_NAME            = "site.json"
 
-setting        = JSON.parse( File.open(SETTING_FILE_PASS).read, {:symbolize_names => true} )
+setting        = JSON.parse( File.open(SETTING_FILE_PASS).read)
 puts "json validate: " + JSON::Validator.validate(SCHEMA_FILE_PASS, setting, :insert_defaults => true).to_s
 
-json_file_pass = FileTest.exist?(SITE_JSON_NAME) ? SITE_JSON_NAME : setting[:site_json]
-puts "reading site json file from #{json_file_pass}"
-json           = JSON.parse( open(json_file_pass).read, {:symbolize_names => true} )
-File.write( SITE_JSON_NAME, JSON.unparse(json) ) unless FileTest.exist?(SITE_JSON_NAME)
-crawler        = Crawler.new(setting[:dst_dir], json[:naver], setting[:wait_time])
-file_dirs      = ARGV.map{ |v| crawler.save_images(v) }
-exit if setting[:save_to] == "local"
+site_json_file_pass = FileTest.exist?(SITE_JSON_NAME) ? SITE_JSON_NAME : setting["site_json"]
+puts "reading site json file from #{site_json_file_pass}"
+site_json           = JSON.parse( open(site_json_file_pass).read)
+File.write( SITE_JSON_NAME, JSON.unparse(site_json) ) unless FileTest.exist?(SITE_JSON_NAME)
+crawler   = Crawler.new(setting["dst_dir"], site_json["naver"], setting["wait_time"])
+file_dirs = ARGV.map{ |v| crawler.save_images(v) }
+exit if setting["save_to"] == "local"
 
 zip_paths   = file_dirs.map{ |dir| zip_dir(dir) }
 file_dirs.each{ |dir| FileUtils::remove_entry_secure( dir.force_encoding("ascii-8bit") ) }
