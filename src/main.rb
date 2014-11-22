@@ -45,29 +45,6 @@ class Uploader
 	end
 end
 
-# 引数に指定されたディレクトリを中身ごと消す
-def remove_dir(dir)
-	# サブディレクトリを階層が深い順にソートした配列を作成
-	dirlist = Dir::glob(dir + "**/").sort {
-	  |a,b| b.split('/').size <=> a.split('/').size
-	}
-
-	# サブディレクトリ配下の全ファイルを削除後、サブディレクトリを削除
-	dirlist.each {|d|
-	  Dir::foreach(d) {|f|
-	    File::delete(d+f) if ! (/\.+$/ =~ f)
-	  }
-	  Dir::rmdir(d)
-	}
-
-	return nil unless File.exist?(dir)
-	# 指定したディレクトリ下のファイルを削除
-	Dir::foreach(dir) {|f|
-	  File::delete("#{dir}/#{f.toutf8}") if ! (/\.+$/ =~ f)
-	}
-    Dir::rmdir(dir)
-end
-
 # 指定されたディレクトリ以下のファイルをzipにする。返り値はzipのパス
 def zip_dir(src)
 	dst = "#{src}.zip"
@@ -97,7 +74,7 @@ file_dirs      = ARGV.map{ |v| crawler.save_images(v) }
 exit if setting[:save_to] == "local"
 
 zip_paths   = file_dirs.map{ |dir| zip_dir(dir) }
-file_dirs.each{ |dir| remove_dir(dir) }
+file_dirs.each{ |dir| FileUtils::remove_entry_secure( dir.force_encoding("ascii-8bit") ) }
 
 uploader = Uploader.new(setting).get_logined_uploader
 zip_paths.each do |path|
