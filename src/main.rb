@@ -15,13 +15,14 @@ end
 
 class Uploader
 	def initialize(setting)
-		@uploader_name = setting["save_to"]
-		@uploader_data = setting["uploader"][ setting["save_to"] ]
+		@setting       = setting
+		@uploader_name = @setting["save_to"]
+		@uploader_data = @setting["uploader"][ @setting["save_to"] ]
+		puts "uploader validate: " + JSON::Validator.validate(UPLOADER_SCHEMA_FILE_PASS, @uploader_data, :insert_defaults => true).to_s
 		@app_key       = @uploader_data["app_key"]
 		@app_secret    = @uploader_data["app_secret"]
 		@access_token  = @uploader_data["access_token"]
 		@uploader      = get_uploader
-		puts "uploader validate: " + JSON::Validator.validate(UPLOADER_SCHEMA_FILE_PASS, @uploader_data, :insert_defaults => true).to_s
 	end
 
 	# 引数に応じてアップロード先のインスタンスを返す
@@ -36,9 +37,10 @@ class Uploader
 		token = (@access_token == "") ? @uploader.get_access_token : @access_token
 		new_token  = @uploader.login( token )
 		if @access_token == ""
-			@access_token = new_token 
+			@uploader_data["access_token"] = new_token
+			puts "add access token to #{SETTING_FILE_PASS}"
 			open(SETTING_FILE_PASS, 'w') do |io|
-			  JSON.dump(setting, io)
+			  JSON.dump(@setting, io)
 			end
 		end
 		@uploader
