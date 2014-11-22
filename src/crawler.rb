@@ -128,7 +128,7 @@ class Crawler
   # 与えられたcssセレクタから画像を抽出する
   def save_images(original_url)
     dst_dir = "#{@dir}/#{get_contents(original_url, :title).first}"
-    (@page_index_min..get_contents(original_url, :page_index_max).first ).each do |page_index|
+    (@page_index_min..get_page_index_max(original_url) ).each do |page_index|
       url = "#{original_url}#{get_next_page_appendix_with_index(page_index)}"
       get_contents(url, :image).zip(get_contents(url, :image_title)) do |url, title|
         save_image(dst_dir, url, title) unless url == nil
@@ -176,6 +176,12 @@ class Crawler
   end
 
   def get_next_page_appendix_with_index(index) @next_page_appendix.gsub("{index}", index.to_s) end
+
+  def get_page_index_max(url)
+    page_index_max = get_contents(url, :page_index_max)
+    return @page_index_min if page_index_max.length == 0
+    (page_index_max.first.kind_of?(Integer)) ? page_index_max.first : @page_index_min
+  end
 
   # 与えられたURLから、セレクタに従って画像のURLを返す
   def get_contents(url, target, nest = 0)
