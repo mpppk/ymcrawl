@@ -1,6 +1,6 @@
 {
   "type": "object",
-  "required": ["app_key", "app_secret", "access_token"],
+  "required": ["app_key", "app_secret"],
   "properties": {
     "app_key": {"type": "string", "default": ""},
     "app_secret": {"type": "string", "default": ""},

@@ -1,6 +1,6 @@
 {
   "type": "object",
-  "required": ["dst_dir", "site_json", "wait_time", "save_to"],
+  "required": [],
   "properties": {
     "dst_dir": {"type": "string", "default": "./img"},
     "site_json": {"type": "string", "default": "./site.json"},
