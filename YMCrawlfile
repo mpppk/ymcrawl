@@ -5,8 +5,6 @@
 	"save_to": "local",
 	"uploader":{
 		"dropbox":{
-			"app_key": "",
-			"app_secret": "",
 			"access_token": ""
 		}
 	}

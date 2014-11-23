@@ -19,8 +19,8 @@ class Uploader
 		@uploader_name = @setting["save_to"]
 		@uploader_data = @setting["uploader"][ @setting["save_to"] ]
 		puts "uploader validate: " + JSON::Validator.validate(UPLOADER_SCHEMA_FILE_PASS, @uploader_data, :insert_defaults => true).to_s
-		@app_key       = @uploader_data["app_key"]
-		@app_secret    = @uploader_data["app_secret"]
+		@app_key       = ENV["#{@setting["save_to"].upcase }_APP_KEY"]
+		@app_secret    = ENV["#{@setting["save_to"].upcase }_APP_SECRET"]
 		@access_token  = @uploader_data["access_token"]
 		@uploader      = get_uploader
 	end
