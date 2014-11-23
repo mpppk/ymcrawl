@@ -58,21 +58,29 @@ def zip_dir(src)
 	dst
 end
 
+# URLのドメインに合致するsite情報を返す
+def get_site_info(url, sites)
+	host = URI(url).host
+	# ハッシュのkeyがs[0],valueがs[1]に入る
+	sites.each{ |s| return s[1] if s[1]["host"] == host }
+end
+
 ORG_SETTING_FILE_PASS     = "YMCrawlfile"
 SETTING_FILE_PASS         = (option.key?(:debug)) ? "#{ORG_SETTING_FILE_PASS}.debug" : ORG_SETTING_FILE_PASS
 SCHEMA_FILE_PASS          = "YMCrawl_schema.json"
 UPLOADER_SCHEMA_FILE_PASS = "uploader_schema.json"
 SITE_JSON_NAME            = "site.json"
 
-setting        = JSON.parse( File.open(SETTING_FILE_PASS).read)
+setting = JSON.parse( File.open(SETTING_FILE_PASS).read)
 puts "json validate: " + JSON::Validator.validate(SCHEMA_FILE_PASS, setting, :insert_defaults => true).to_s
 
 site_json_file_pass = FileTest.exist?(SITE_JSON_NAME) ? SITE_JSON_NAME : setting["site_json"]
 puts "reading site json file from #{site_json_file_pass}"
 site_json           = JSON.parse( open(site_json_file_pass).read)
 File.write( SITE_JSON_NAME, JSON.unparse(site_json) ) unless FileTest.exist?(SITE_JSON_NAME)
-crawler   = Crawler.new(setting["dst_dir"], site_json["naver"], setting["wait_time"])
-file_dirs = ARGV.map{ |v| crawler.save_images(v) }
+
+ncrawler   = Crawler.new(setting["dst_dir"], get_site_info(ARGV[0], site_json), setting["wait_time"])
+file_dirs = ARGV.map{ |v| ncrawler.save_images(v) }
 exit if setting["save_to"] == "local"
 
 zip_paths   = file_dirs.map{ |dir| zip_dir(dir) }
