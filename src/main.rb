@@ -63,6 +63,7 @@ def get_site_info(url, sites)
 	host = URI(url).host
 	# ハッシュのkeyがs[0],valueがs[1]に入る
 	sites.each{ |s| return s[1] if s[1]["host"] == host }
+	return sites["default"]
 end
 
 ORG_SETTING_FILE_PASS     = "YMCrawlfile"

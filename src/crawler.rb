@@ -121,7 +121,7 @@ class Crawler
     @selectors[:title]          = site_data["css"]["title"].map          { |s| Selector.new(s) }
     @selectors[:page_index_max] = site_data["css"]["page_index_max"].map { |s| Selector.new(s) }
     @page_index_min             = site_data["page_index_min"]
-    @next_page_appendix         = site_data["next_page_appendix"]
+    @next_page_appendix         = (site_data["next_page_appendix"] == nil) ? "" : site_data["next_page_appendix"]
     @dir = dir
   end
   
@@ -175,9 +175,16 @@ class Crawler
     end
   end
 
-  def get_next_page_appendix_with_index(index) @next_page_appendix.gsub("{index}", index.to_s) end
+  # URLに付加する文字列を返す
+  def get_next_page_appendix_with_index(index)
+    return "" if @next_page_appendix == ""
+    @next_page_appendix.gsub("{index}", index.to_s)
+  end
 
+  # 記事の最大ページを取得する
   def get_page_index_max(url)
+    # page_index_maxのcssが空文字だとget_contentsがエラーになるので、最初にチェック
+    return @page_index_min if @next_page_appendix == ""
     page_index_max = get_contents(url, :page_index_max)
     return @page_index_min if page_index_max.length == 0
     (page_index_max.first.kind_of?(Integer)) ? page_index_max.first : @page_index_min
